@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { LockOpen, Square } from "lucide-react";
+import { Lock, LockOpen, Square } from "lucide-react";
 import { fmtCountdown, minutesLeft, type ActiveSession } from "@/lib/app-state";
 import { isIOS, LOCK_SHORTCUT, runShortcut, UNLOCK_SHORTCUT } from "@/lib/shortcuts";
 
@@ -27,10 +27,13 @@ export function ActiveSessionCard({
   const total = session.minutes * 60000;
   const pct = Math.max(0, Math.min(1, 1 - left / total));
 
-  // Alert once when the session runs out.
+  // Alert once when the session runs out, and re-lock the phone's apps.
   useEffect(() => {
     if (!done || firedRef.current) return;
     firedRef.current = true;
+    // Safari may refuse a scheme navigation without a tap; the Lock button below
+    // is the guaranteed path, this just saves a tap when it does go through.
+    runShortcut(LOCK_SHORTCUT);
     navigator.vibrate?.([200, 100, 200, 100, 400]);
     try {
       const ctx = new AudioContext();
@@ -93,15 +96,24 @@ export function ActiveSessionCard({
         </button>
       </div>
 
-      {!done && isIOS() && (
-        <button
-          onClick={() => runShortcut(UNLOCK_SHORTCUT, minutesLeft(session))}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--surface-2)] py-3 text-sm font-bold text-[var(--accent)] active:scale-[0.98]"
-        >
-          <LockOpen size={16} />
-          Unlock my apps for {minutesLeft(session)} min
-        </button>
-      )}
+      {isIOS() &&
+        (done ? (
+          <button
+            onClick={() => runShortcut(LOCK_SHORTCUT)}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--danger)] py-3 text-sm font-bold text-white active:scale-[0.98]"
+          >
+            <Lock size={16} />
+            Lock my apps again
+          </button>
+        ) : (
+          <button
+            onClick={() => runShortcut(UNLOCK_SHORTCUT, minutesLeft(session))}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--surface-2)] py-3 text-sm font-bold text-[var(--accent)] active:scale-[0.98]"
+          >
+            <LockOpen size={16} />
+            Unlock my apps for {minutesLeft(session)} min
+          </button>
+        ))}
 
       {!done && (
         <p className="mt-3 text-xs text-[var(--muted)]">
