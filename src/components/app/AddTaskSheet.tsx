@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Camera, Dumbbell, X } from "lucide-react";
 import {
   CATEGORY_LABEL,
   CATEGORY_ORDER,
@@ -28,127 +29,153 @@ export function AddTaskSheet({
   const [repeatable, setRepeatable] = useState(task?.repeatable ?? true);
 
   const field =
-    "w-full border-b border-[var(--hairline)] bg-transparent py-2 text-foreground outline-none focus:border-[var(--accent)]";
-  const toggle = (active: boolean) =>
-    `flex-1 border py-2 font-mono text-xs tracking-widest ${
-      active
-        ? "border-[var(--accent)] text-[var(--accent)] lift"
-        : "border-[var(--hairline)] text-muted-foreground"
+    "w-full rounded-2xl bg-[var(--surface-2)] px-4 py-3 text-[var(--text)] outline-none ring-[var(--accent)] placeholder:text-[var(--muted)] focus:ring-2";
+
+  const chip = (active: boolean) =>
+    `rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+      active ? "bg-[var(--accent)] text-black" : "bg-[var(--surface-2)] text-[var(--muted)]"
     }`;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col sheet-solid">
-      <header className="flex items-center justify-between px-5 py-4 hairline-bottom">
-        <h2 className="font-display text-lg">{editing ? "Edit task" : "New task"}</h2>
-        <button onClick={onClose} className="label-caps hover:text-foreground">
-          Cancel
-        </button>
-      </header>
+    <div className="fixed inset-0 z-50 flex flex-col bg-black/60 backdrop-blur-sm">
+      <button className="flex-1" onClick={onClose} aria-label="Close" />
 
-      <div className="flex-1 space-y-7 overflow-y-auto px-5 py-6">
-        <div className="flex gap-3">
-          <button onClick={() => setKind("photo")} className={toggle(kind === "photo")}>
-            PHOTO PROOF
+      <div className="sheet flex max-h-[92vh] flex-col">
+        <div className="mx-auto mt-3 h-1.5 w-10 shrink-0 rounded-full bg-[var(--line)]" />
+
+        <header className="flex shrink-0 items-center justify-between px-5 py-4">
+          <h2 className="text-xl font-bold">{editing ? "Edit task" : "New task"}</h2>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="grid h-9 w-9 place-items-center rounded-full bg-[var(--surface-2)] text-[var(--muted)]"
+          >
+            <X size={18} />
           </button>
-          <button onClick={() => setKind("pushup")} className={toggle(kind === "pushup")}>
-            PUSHUPS
-          </button>
-        </div>
+        </header>
 
-        <div>
-          <div className="label-caps">Task name</div>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder={kind === "pushup" ? "Morning pushups" : "Make bed"}
-            className={`${field} font-display text-lg`}
-          />
-        </div>
-
-        {kind === "photo" ? (
-          <div>
-            <div className="label-caps">Minutes earned per completion</div>
-            <input
-              type="number"
-              inputMode="numeric"
-              min={1}
-              value={minutes}
-              onChange={(e) => setMinutes(Math.max(1, Number(e.target.value) || 1))}
-              className={`${field} font-mono text-lg`}
-            />
-          </div>
-        ) : (
-          <div className="border border-[var(--hairline)] px-4 py-3">
-            <div className="label-caps">Minutes</div>
-            <p className="mt-1 font-mono text-sm">1 pushup = 1 minute, credited live.</p>
-          </div>
-        )}
-
-        <div>
-          <div className="label-caps">Category</div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {CATEGORY_ORDER.map((c) => (
+        <div className="flex-1 space-y-6 overflow-y-auto px-5 pb-5">
+          {/* kind */}
+          <div className="grid grid-cols-2 gap-2">
+            {(
+              [
+                ["photo", "Photo proof", Camera],
+                ["pushup", "Pushups", Dumbbell],
+              ] as const
+            ).map(([k, label, Icon]) => (
               <button
-                key={c}
-                onClick={() => setCategory(c)}
-                className={`border px-3 py-2 font-mono text-[11px] tracking-widest ${
-                  category === c
-                    ? "border-[var(--accent)] text-[var(--accent)] lift"
-                    : "border-[var(--hairline)] text-muted-foreground"
-                }`}
+                key={k}
+                onClick={() => setKind(k)}
+                className="flex flex-col items-center gap-2 rounded-2xl border py-4 transition-colors"
+                style={{
+                  borderColor: kind === k ? "var(--accent)" : "var(--line)",
+                  background: kind === k ? "rgba(198,255,90,0.10)" : "var(--surface-2)",
+                  color: kind === k ? "var(--accent)" : "var(--muted)",
+                }}
               >
-                {CATEGORY_LABEL[c].toUpperCase()}
+                <Icon size={22} />
+                <span className="text-sm font-semibold">{label}</span>
               </button>
             ))}
           </div>
-        </div>
 
-        {kind === "photo" && (
           <div>
-            <div className="label-caps">Approval checklist</div>
-            <textarea
-              value={criteria}
-              onChange={(e) => setCriteria(e.target.value)}
-              rows={3}
-              placeholder="The mattress is fully covered and pillows are at the head of the bed."
-              className={`${field} resize-none text-sm`}
+            <label className="eyebrow mb-2 block">Task name</label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={kind === "pushup" ? "Morning pushups" : "Make bed"}
+              className={`${field} font-display text-lg font-semibold`}
             />
           </div>
-        )}
 
-        <div className="flex gap-3">
-          <button onClick={() => setRepeatable(true)} className={toggle(repeatable)}>
-            REPEATABLE
-          </button>
-          <button onClick={() => setRepeatable(false)} className={toggle(!repeatable)}>
-            ONE-TIME
+          {kind === "photo" ? (
+            <div>
+              <label className="eyebrow mb-2 block">Minutes earned</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  value={minutes}
+                  onChange={(e) => setMinutes(Math.max(1, Number(e.target.value) || 1))}
+                  className={`${field} text-lg font-bold`}
+                />
+                {[5, 10, 15, 30].map((m) => (
+                  <button key={m} onClick={() => setMinutes(m)} className={chip(minutes === m)}>
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-2xl bg-[rgba(139,124,255,0.12)] px-4 py-3 text-sm text-[var(--text)]">
+              <span className="font-semibold text-[var(--violet)]">1 pushup = 1 minute</span>,
+              counted live by the camera and banked as you go.
+            </div>
+          )}
+
+          <div>
+            <label className="eyebrow mb-2 block">Category</label>
+            <div className="flex flex-wrap gap-2">
+              {CATEGORY_ORDER.map((c) => (
+                <button key={c} onClick={() => setCategory(c)} className={chip(category === c)}>
+                  {CATEGORY_LABEL[c]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {kind === "photo" && (
+            <div>
+              <label className="eyebrow mb-2 block">What counts as done?</label>
+              <textarea
+                value={criteria}
+                onChange={(e) => setCriteria(e.target.value)}
+                rows={3}
+                placeholder="The mattress is fully covered and pillows are at the head of the bed."
+                className={`${field} resize-none text-sm`}
+              />
+              <p className="mt-2 text-xs text-[var(--muted)]">
+                The AI checks your photo against this. Be specific.
+              </p>
+            </div>
+          )}
+
+          <div>
+            <label className="eyebrow mb-2 block">How often</label>
+            <div className="flex gap-2">
+              <button onClick={() => setRepeatable(true)} className={chip(repeatable)}>
+                Repeatable
+              </button>
+              <button onClick={() => setRepeatable(false)} className={chip(!repeatable)}>
+                One-time
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="shrink-0 px-5 pt-2 safe-bottom">
+          <button
+            disabled={!name.trim()}
+            onClick={() => {
+              const payload = {
+                name: name.trim(),
+                minutes: kind === "pushup" ? 1 : minutes,
+                kind,
+                repeatable,
+                category,
+                criteria: kind === "photo" ? criteria.trim() : undefined,
+              };
+              if (editing && task && onSave) onSave(task.id, payload);
+              else onAdd?.(payload);
+              onClose();
+            }}
+            className="glow w-full rounded-2xl bg-[var(--accent)] py-4 text-lg font-bold text-black disabled:opacity-30 disabled:shadow-none active:scale-[0.98]"
+          >
+            {editing ? "Save changes" : "Add task"}
           </button>
         </div>
-        <p className="font-mono text-[11px] text-muted-foreground">
-          Repeatable tasks can be earned unlimited times per day.
-        </p>
-      </div>
-
-      <div className="px-5 py-5 hairline-top">
-        <button
-          disabled={!name.trim()}
-          onClick={() => {
-            const payload = {
-              name: name.trim(),
-              minutes: kind === "pushup" ? 1 : minutes,
-              kind,
-              repeatable,
-              category,
-              criteria: kind === "photo" ? criteria.trim() : undefined,
-            };
-            if (editing && task && onSave) onSave(task.id, payload);
-            else onAdd?.(payload);
-            onClose();
-          }}
-          className="w-full border border-[var(--accent)] py-3 font-mono text-sm tracking-widest text-[var(--accent)] disabled:opacity-40"
-        >
-          {editing ? "SAVE CHANGES" : "SAVE TASK"}
-        </button>
       </div>
     </div>
   );

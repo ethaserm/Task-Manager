@@ -85,7 +85,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         name: "description",
         content: "Earn screen time credits with verified tasks and live pushup sessions.",
       },
-      { name: "theme-color", content: "#FFFFFF" },
+      { name: "theme-color", content: "#0A0B0F" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -95,7 +95,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Work+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap",
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],

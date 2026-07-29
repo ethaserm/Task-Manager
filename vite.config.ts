@@ -12,4 +12,11 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    server: {
+      // Allow phone testing through a Cloudflare quick tunnel (HTTPS is required
+      // for camera access on a phone; localhost is exempt but LAN IPs are not).
+      allowedHosts: [".trycloudflare.com"],
+    },
+  },
 });

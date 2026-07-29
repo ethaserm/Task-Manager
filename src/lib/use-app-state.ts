@@ -70,6 +70,61 @@ export function useAppState() {
     }));
   }, []);
 
+  /** Starts a live screen-time session: minutes leave the balance up front. */
+  const startScreenTime = useCallback((n: number) => {
+    set((s) => {
+      const amount = Math.min(n, s.balance);
+      if (amount <= 0) return s;
+      const now = Date.now();
+      return {
+        ...s,
+        balance: s.balance - amount,
+        active: { minutes: amount, startedAt: now, endsAt: now + amount * 60000 },
+        history: [
+          {
+            id: crypto.randomUUID(),
+            taskId: "spend",
+            name: `Screen time · ${amount} min`,
+            minutes: -amount,
+            kind: "spend" as const,
+            at: now,
+          },
+          ...s.history,
+        ],
+      };
+    });
+  }, []);
+
+  /** Ends the session. Stopping early refunds whole unused minutes. */
+  const endScreenTime = useCallback(() => {
+    set((s) => {
+      if (!s.active) return s;
+      const unused = Math.max(0, Math.floor((s.active.endsAt - Date.now()) / 60000));
+      if (unused <= 0) return { ...s, active: null };
+      return {
+        ...s,
+        active: null,
+        balance: s.balance + unused,
+        history: [
+          {
+            id: crypto.randomUUID(),
+            taskId: "spend",
+            name: `Stopped early · ${unused} min back`,
+            minutes: unused,
+            kind: "spend" as const,
+            at: Date.now(),
+          },
+          ...s.history,
+        ],
+      };
+    });
+  }, []);
+
+  /** Records a session's rep count when it beats the stored best. */
+  const recordBest = useCallback((reps: number) => {
+    set((s) => (reps > (s.pushupBest ?? 0) ? { ...s, pushupBest: reps } : s));
+  }, []);
+
   const setDailyGoal = useCallback((n: number) => set((s) => ({ ...s, dailyGoal: n })), []);
 
   const updateTask = useCallback((id: string, patch: Partial<Task>) => {
@@ -84,6 +139,9 @@ export function useAppState() {
     removeTask,
     completeTask,
     creditMinutes,
+    startScreenTime,
+    endScreenTime,
+    recordBest,
     logEntry,
     setDailyGoal,
     updateTask,

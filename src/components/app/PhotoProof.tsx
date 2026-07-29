@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Check, RefreshCw, X } from "lucide-react";
 import type { Task } from "@/lib/app-state";
 
 type Verdict = { verdict: "APPROVED" | "REJECTED"; reason: string } | null;
@@ -34,7 +35,7 @@ export function PhotoProof({
         await videoRef.current.play();
       }
     } catch {
-      setError("Camera unavailable. Allow camera access to submit proof.");
+      setError("Camera unavailable — allow camera access to submit proof.");
     }
   }, []);
 
@@ -88,95 +89,119 @@ export function PhotoProof({
     start(facing);
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col sheet-solid">
-      <header className="flex items-center justify-between px-5 py-4 hairline-bottom">
-        <div>
-          <div className="label-caps">Proof required</div>
-          <h2 className="font-display text-lg">{task.name}</h2>
-        </div>
-        <button onClick={onClose} className="label-caps hover:text-foreground">
-          Close
-        </button>
-      </header>
+  const approved = verdict?.verdict === "APPROVED";
 
-      <div className="relative flex-1 overflow-hidden bg-[#14161A]">
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-black">
+      <div className="relative flex-1 overflow-hidden">
         {shot ? (
           <img src={shot} alt="Captured proof" className="h-full w-full object-contain" />
         ) : (
-          <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
+          <video
+            ref={videoRef}
+            playsInline
+            muted
+            className="h-full w-full object-cover"
+            style={{ transform: facing === "user" ? "scaleX(-1)" : undefined }}
+          />
         )}
 
-        {!shot && (
+        <div className="absolute inset-x-0 top-0 flex items-start justify-between p-4">
           <button
-            onClick={flipCamera}
-            className="absolute right-4 top-4 border border-white/40 bg-black/30 px-3 py-2 font-mono text-[11px] tracking-widest text-white backdrop-blur"
+            onClick={onClose}
+            className="grid h-10 w-10 place-items-center rounded-full bg-black/50 text-white backdrop-blur"
+            aria-label="Close"
           >
-            {facing === "user" ? "FRONT" : "BACK"} ⇄
+            <X size={20} />
           </button>
+          <div className="rounded-full bg-black/50 px-4 py-2 text-center backdrop-blur">
+            <div className="font-display text-sm font-semibold text-white">{task.name}</div>
+            <div className="text-[11px] font-medium text-[var(--accent)]">+{task.minutes} min</div>
+          </div>
+          {!shot ? (
+            <button
+              onClick={flipCamera}
+              className="grid h-10 w-10 place-items-center rounded-full bg-black/50 text-white backdrop-blur"
+              aria-label="Flip camera"
+            >
+              <RefreshCw size={18} />
+            </button>
+          ) : (
+            <span className="h-10 w-10" />
+          )}
+        </div>
+
+        {task.criteria && !shot && (
+          <p className="absolute inset-x-6 bottom-6 rounded-2xl bg-black/60 px-4 py-3 text-center text-sm text-white/90 backdrop-blur">
+            {task.criteria}
+          </p>
         )}
 
         {error && (
-          <p className="absolute inset-x-0 bottom-6 px-6 text-center text-sm text-white/80">
+          <p className="absolute inset-x-6 bottom-6 rounded-2xl bg-black/70 px-4 py-3 text-center text-sm text-white">
             {error}
           </p>
         )}
       </div>
 
-      <div className="px-5 py-5 hairline-top">
+      <div className="bg-[var(--bg)] px-5 pt-4 safe-bottom">
         {verdict && (
           <div
-            className="mb-4 flex items-start gap-3 border-l-2 pl-3"
+            className="mb-4 flex items-start gap-3 rounded-2xl p-4"
             style={{
-              borderColor: verdict.verdict === "APPROVED" ? "var(--accent)" : "var(--destructive)",
+              background: approved ? "rgba(198,255,90,0.12)" : "rgba(255,107,107,0.12)",
             }}
           >
             <span
-              className="font-mono text-xs tracking-widest"
+              className="grid h-7 w-7 shrink-0 place-items-center rounded-full"
               style={{
-                color: verdict.verdict === "APPROVED" ? "var(--accent)" : "var(--destructive)",
+                background: approved ? "var(--accent)" : "var(--danger)",
+                color: approved ? "#0a0b0f" : "#fff",
               }}
             >
-              {verdict.verdict}
+              {approved ? <Check size={16} strokeWidth={3} /> : <X size={16} strokeWidth={3} />}
             </span>
-            <span className="text-sm text-muted-foreground">{verdict.reason}</span>
+            <span>
+              <span
+                className="block text-sm font-bold"
+                style={{ color: approved ? "var(--accent)" : "var(--danger)" }}
+              >
+                {approved ? `Approved · +${task.minutes} min` : "Not approved"}
+              </span>
+              <span className="mt-0.5 block text-sm text-[var(--muted)]">{verdict.reason}</span>
+            </span>
           </div>
         )}
 
-        <div className="mb-3 flex items-center justify-between font-mono text-xs text-muted-foreground">
-          <span>+{task.minutes} MIN</span>
-          <span>UNLIMITED ATTEMPTS</span>
-        </div>
-
-        {verdict?.verdict === "APPROVED" ? (
+        {approved ? (
           <button
             onClick={onClose}
-            className="w-full border border-[var(--accent)] py-3 font-mono text-sm tracking-widest text-[var(--accent)]"
+            className="glow w-full rounded-2xl bg-[var(--accent)] py-4 text-lg font-bold text-black active:scale-[0.98]"
           >
-            DONE
+            Nice — done
           </button>
         ) : !shot ? (
           <button
             onClick={capture}
             disabled={!!error}
-            className="w-full border border-[var(--accent)] py-3 font-mono text-sm tracking-widest text-[var(--accent)] disabled:opacity-40"
+            className="glow w-full rounded-2xl bg-[var(--accent)] py-4 text-lg font-bold text-black disabled:opacity-30 disabled:shadow-none active:scale-[0.98]"
           >
-            CAPTURE
+            Take photo
           </button>
         ) : (
           <div className="flex gap-3">
             <button
               onClick={retake}
-              className="flex-1 border border-[var(--hairline)] py-3 font-mono text-sm tracking-widest text-muted-foreground"
+              className="flex-1 rounded-2xl bg-[var(--surface-2)] py-4 text-base font-semibold text-[var(--text)] active:scale-[0.98]"
             >
-              RETAKE
+              Retake
             </button>
             <button
               onClick={submit}
               disabled={busy}
-              className="flex-1 border border-[var(--accent)] py-3 font-mono text-sm tracking-widest text-[var(--accent)] disabled:opacity-40"
+              className="glow flex-1 rounded-2xl bg-[var(--accent)] py-4 text-base font-bold text-black disabled:opacity-40 active:scale-[0.98]"
             >
-              {busy ? "VERIFYING…" : "SUBMIT"}
+              {busy ? "Checking…" : "Submit"}
             </button>
           </div>
         )}

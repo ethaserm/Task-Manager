@@ -13,16 +13,26 @@ export interface Task {
   completedOn?: string; // "done" for one-time tasks; repeatable tasks are unlimited
 }
 
+/** "spend" entries carry negative minutes and never count toward daily progress. */
+export type EntryKind = TaskKind | "spend";
+
 export interface HistoryEntry {
   id: string;
   taskId: string;
   name: string;
   minutes: number;
-  kind: TaskKind;
+  kind: EntryKind;
   at: number;
   reason?: string;
   thumb?: string;
   summary?: string;
+}
+
+/** A screen-time session being spent right now. Survives reloads via `endsAt`. */
+export interface ActiveSession {
+  minutes: number;
+  startedAt: number;
+  endsAt: number;
 }
 
 export interface AppState {
@@ -30,6 +40,9 @@ export interface AppState {
   tasks: Task[];
   history: HistoryEntry[];
   dailyGoal: number;
+  /** Most reps completed in a single session. */
+  pushupBest: number;
+  active?: ActiveSession | null;
 }
 
 const KEY = "app.screentime.v2";
@@ -58,6 +71,7 @@ const seed = (
 export const initialState: AppState = {
   balance: 0,
   dailyGoal: 60,
+  pushupBest: 0,
   tasks: [
     seed(
       "t-bed",
@@ -192,12 +206,46 @@ export function isDone(t: Task) {
 
 export function earnedToday(h: HistoryEntry[]) {
   const k = todayKey();
-  return h.filter((e) => todayKey(new Date(e.at)) === k).reduce((a, e) => a + e.minutes, 0);
+  return h
+    .filter((e) => e.kind !== "spend" && todayKey(new Date(e.at)) === k)
+    .reduce((a, e) => a + e.minutes, 0);
+}
+
+/** Consecutive days up to today with at least one earning entry. */
+export function currentStreak(h: HistoryEntry[]) {
+  const days = new Set(h.filter((e) => e.kind !== "spend").map((e) => todayKey(new Date(e.at))));
+  const d = new Date();
+  // Today not being logged yet shouldn't break a streak — start from yesterday then.
+  if (!days.has(todayKey(d))) d.setDate(d.getDate() - 1);
+  let n = 0;
+  while (days.has(todayKey(d))) {
+    n += 1;
+    d.setDate(d.getDate() - 1);
+  }
+  return n;
+}
+
+export function repsToday(h: HistoryEntry[]) {
+  const k = todayKey();
+  return h
+    .filter((e) => e.kind === "pushup" && todayKey(new Date(e.at)) === k)
+    .reduce((a, e) => a + e.minutes, 0);
 }
 
 export function completionsToday(h: HistoryEntry[], taskId: string) {
   const k = todayKey();
   return h.filter((e) => e.taskId === taskId && todayKey(new Date(e.at)) === k).length;
+}
+
+/** Whole minutes left on a session, floored at zero. */
+export function minutesLeft(a?: ActiveSession | null, now = Date.now()) {
+  if (!a) return 0;
+  return Math.max(0, Math.ceil((a.endsAt - now) / 60000));
+}
+
+export function fmtCountdown(ms: number) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
 export function fmtMinutes(m: number) {
