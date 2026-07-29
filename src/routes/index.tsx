@@ -21,11 +21,13 @@ import {
   currentStreak,
   earnedToday,
   isDone,
+  repsToday,
   type Task,
   type TaskCategory,
 } from "@/lib/app-state";
 import { SpendSheet } from "@/components/app/SpendSheet";
 import { ActiveSessionCard } from "@/components/app/ActiveSessionCard";
+import { QuickAdd } from "@/components/app/QuickAdd";
 import { useAppState } from "@/lib/use-app-state";
 
 export const Route = createFileRoute("/")({
@@ -72,6 +74,8 @@ function Ledger() {
     endScreenTime,
     recordBest,
     logEntry,
+    addManualReps,
+    undoLast,
     removeTask,
   } = useAppState();
   const [adding, setAdding] = useState(false);
@@ -99,14 +103,17 @@ function Ledger() {
         </div>
         <div className="flex items-center gap-2">
           {streak > 0 && (
-            <span className="rounded-full bg-[var(--surface-2)] px-3 py-2 text-sm font-bold text-[var(--accent)]">
-              🔥 {streak}
+            <span
+              className="rounded-full px-3 py-2 text-sm font-bold"
+              style={{ background: "var(--earn-soft)", color: "var(--earn)" }}
+            >
+              {streak} day{streak === 1 ? "" : "s"}
             </span>
           )}
           <button
             onClick={() => setAdding(true)}
             aria-label="Add task"
-            className="glow grid h-11 w-11 place-items-center rounded-full bg-[var(--accent)] text-black active:scale-95"
+            className="glow grid h-11 w-11 place-items-center rounded-full bg-[var(--accent)] text-white active:scale-95"
           >
             <Plus size={22} strokeWidth={2.6} />
           </button>
@@ -131,31 +138,38 @@ function Ledger() {
         )}
       </div>
 
-      {/* Pushups are the task that actually gets used — one tap, no scrolling. */}
-      {pushupTask && !state.active && (
-        <div className="px-4 pb-6">
+      {/* Pushups are the task that actually gets used — camera or by hand. */}
+      {pushupTask && (
+        <div className="space-y-2 px-4 pb-6">
           <button
             onClick={() => setPushTask(pushupTask)}
             className="card flex w-full items-center gap-4 p-4 text-left active:scale-[0.99]"
-            style={{ borderColor: "var(--violet)" }}
           >
             <span
               className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl"
-              style={{ background: "rgba(139,124,255,0.16)", color: "var(--violet)" }}
+              style={{ background: "var(--earn-soft)", color: "var(--earn)" }}
             >
               <Dumbbell size={26} />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block font-display text-lg font-bold">Start pushups</span>
+              <span className="block font-display text-lg font-bold">Count with camera</span>
               <span className="block text-sm text-[var(--muted)]">
                 1 rep = 1 min
                 {state.pushupBest > 0 ? ` · best ${state.pushupBest}` : ""}
               </span>
             </span>
-            <span className="shrink-0 text-2xl" aria-hidden>
+            <span className="shrink-0 text-xl text-[var(--muted)]" aria-hidden>
               →
             </span>
           </button>
+
+          <QuickAdd
+            todayReps={repsToday(state.history)}
+            goal={state.dailyGoal}
+            canUndo={state.history.length > 0}
+            onAdd={addManualReps}
+            onUndo={undoLast}
+          />
         </div>
       )}
 
@@ -193,7 +207,7 @@ function Ledger() {
                         <span
                           className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl"
                           style={{
-                            background: isPush ? "rgba(139,124,255,0.16)" : "rgba(198,255,90,0.12)",
+                            background: isPush ? "var(--earn-soft)" : "var(--earn-soft)",
                             color: isPush ? "var(--violet)" : "var(--accent)",
                           }}
                         >
@@ -225,7 +239,7 @@ function Ledger() {
                         <span
                           className="shrink-0 rounded-full px-3 py-1.5 text-sm font-bold"
                           style={{
-                            background: done ? "var(--surface-2)" : "rgba(198,255,90,0.12)",
+                            background: done ? "var(--surface-2)" : "var(--earn-soft)",
                             color: done ? "var(--muted)" : "var(--accent)",
                           }}
                         >

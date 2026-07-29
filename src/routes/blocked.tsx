@@ -83,7 +83,7 @@ function Blocked() {
         </p>
 
         {justEarned > 0 && (
-          <div className="mt-5 rounded-2xl bg-[rgba(198,255,90,0.12)] px-4 py-3 text-sm font-semibold text-[var(--accent)]">
+          <div className="mt-5 rounded-2xl bg-[var(--earn-soft)] px-4 py-3 text-sm font-semibold text-[var(--accent)]">
             +{justEarned} min earned just now
           </div>
         )}
@@ -98,7 +98,7 @@ function Blocked() {
                 startScreenTime(balance);
                 runShortcut(UNLOCK_SHORTCUT, balance);
               }}
-              className="glow mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] py-4 text-lg font-bold text-black active:scale-[0.98]"
+              className="glow mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] py-4 text-lg font-bold text-white active:scale-[0.98]"
             >
               <LockOpen size={20} />
               Unlock {balance} min

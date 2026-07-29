@@ -63,7 +63,7 @@ function History() {
                 style={
                   e.kind === "spend"
                     ? { background: "rgba(255,107,107,0.14)", color: "var(--danger)" }
-                    : { background: "rgba(139,124,255,0.16)", color: "var(--violet)" }
+                    : { background: "var(--earn-soft)", color: "var(--violet)" }
                 }
               >
                 {e.kind === "spend" ? <Tv size={20} /> : <Dumbbell size={20} />}
@@ -93,7 +93,7 @@ function History() {
               style={
                 e.minutes < 0
                   ? { background: "rgba(255,107,107,0.12)", color: "var(--danger)" }
-                  : { background: "rgba(198,255,90,0.12)", color: "var(--accent)" }
+                  : { background: "var(--earn-soft)", color: "var(--accent)" }
               }
             >
               {e.minutes < 0 ? e.minutes : `+${e.minutes}`}

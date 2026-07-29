@@ -125,6 +125,61 @@ export function useAppState() {
     set((s) => (reps > (s.pushupBest ?? 0) ? { ...s, pushupBest: reps } : s));
   }, []);
 
+  /** Logs reps done away from the camera. 1 rep = 1 minute, same as tracked reps. */
+  const addManualReps = useCallback((reps: number, taskName = "Pushups") => {
+    if (reps === 0) return;
+    set((s) => ({
+      ...s,
+      balance: Math.max(0, s.balance + reps),
+      history: [
+        {
+          id: crypto.randomUUID(),
+          taskId: "t-push",
+          name: taskName,
+          minutes: reps,
+          kind: "pushup" as const,
+          at: Date.now(),
+          summary: `${reps > 0 ? reps : -reps} reps · logged by hand`,
+        },
+        ...s.history,
+      ],
+    }));
+  }, []);
+
+  /** Removes the most recent entry and reverses its effect on the balance. */
+  const undoLast = useCallback(() => {
+    set((s) => {
+      const [last, ...rest] = s.history;
+      if (!last) return s;
+      return { ...s, balance: Math.max(0, s.balance - last.minutes), history: rest };
+    });
+  }, []);
+
+  /** Clears today's entries and takes back the minutes they earned. */
+  const resetToday = useCallback(() => {
+    set((s) => {
+      const k = todayKey();
+      const todays = s.history.filter((e) => todayKey(new Date(e.at)) === k);
+      const earned = todays.reduce((a, e) => a + e.minutes, 0);
+      return {
+        ...s,
+        balance: Math.max(0, s.balance - earned),
+        history: s.history.filter((e) => todayKey(new Date(e.at)) !== k),
+      };
+    });
+  }, []);
+
+  /** Whole-state backup, so a lost phone or cleared browser isn't a lost history. */
+  const exportBackup = useCallback(() => JSON.stringify(get(), null, 2), []);
+
+  const importBackup = useCallback((json: string) => {
+    const parsed = JSON.parse(json) as Partial<AppState>;
+    if (!Array.isArray(parsed.history) || typeof parsed.balance !== "number") {
+      throw new Error("That file isn't a backup from this app.");
+    }
+    set((s) => ({ ...s, ...parsed }));
+  }, []);
+
   const setDailyGoal = useCallback((n: number) => set((s) => ({ ...s, dailyGoal: n })), []);
 
   const updateTask = useCallback((id: string, patch: Partial<Task>) => {
@@ -143,6 +198,11 @@ export function useAppState() {
     endScreenTime,
     recordBest,
     logEntry,
+    addManualReps,
+    undoLast,
+    resetToday,
+    exportBackup,
+    importBackup,
     setDailyGoal,
     updateTask,
   };

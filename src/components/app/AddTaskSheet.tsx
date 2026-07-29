@@ -33,7 +33,7 @@ export function AddTaskSheet({
 
   const chip = (active: boolean) =>
     `rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-      active ? "bg-[var(--accent)] text-black" : "bg-[var(--surface-2)] text-[var(--muted)]"
+      active ? "bg-[var(--accent)] text-white" : "bg-[var(--surface-2)] text-[var(--muted)]"
     }`;
 
   return (
@@ -69,7 +69,7 @@ export function AddTaskSheet({
                 className="flex flex-col items-center gap-2 rounded-2xl border py-4 transition-colors"
                 style={{
                   borderColor: kind === k ? "var(--accent)" : "var(--line)",
-                  background: kind === k ? "rgba(198,255,90,0.10)" : "var(--surface-2)",
+                  background: kind === k ? "var(--earn-soft)" : "var(--surface-2)",
                   color: kind === k ? "var(--accent)" : "var(--muted)",
                 }}
               >
@@ -109,7 +109,7 @@ export function AddTaskSheet({
               </div>
             </div>
           ) : (
-            <div className="rounded-2xl bg-[rgba(139,124,255,0.12)] px-4 py-3 text-sm text-[var(--text)]">
+            <div className="rounded-2xl bg-[var(--earn-soft)] px-4 py-3 text-sm text-[var(--text)]">
               <span className="font-semibold text-[var(--violet)]">1 pushup = 1 minute</span>,
               counted live by the camera and banked as you go.
             </div>
@@ -171,7 +171,7 @@ export function AddTaskSheet({
               else onAdd?.(payload);
               onClose();
             }}
-            className="glow w-full rounded-2xl bg-[var(--accent)] py-4 text-lg font-bold text-black disabled:opacity-30 disabled:shadow-none active:scale-[0.98]"
+            className="glow w-full rounded-2xl bg-[var(--accent)] py-4 text-lg font-bold text-white disabled:opacity-30 disabled:shadow-none active:scale-[0.98]"
           >
             {editing ? "Save changes" : "Add task"}
           </button>

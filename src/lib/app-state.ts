@@ -225,6 +225,98 @@ export function currentStreak(h: HistoryEntry[]) {
   return n;
 }
 
+/** Reps (== minutes earned) per day, keyed YYYY-MM-DD. Spends are excluded. */
+export function repsByDay(h: HistoryEntry[]) {
+  const map: Record<string, number> = {};
+  for (const e of h) {
+    if (e.kind === "spend") continue;
+    const k = todayKey(new Date(e.at));
+    map[k] = (map[k] ?? 0) + e.minutes;
+  }
+  return map;
+}
+
+/** Longest run of consecutive earning days, ever. */
+export function longestStreak(map: Record<string, number>) {
+  const keys = Object.keys(map)
+    .filter((k) => map[k] > 0)
+    .sort();
+  let best = 0;
+  let run = 0;
+  let prev: Date | null = null;
+  for (const k of keys) {
+    const d = new Date(k + "T00:00:00");
+    run = prev && Math.round((+d - +prev) / 86400000) === 1 ? run + 1 : 1;
+    best = Math.max(best, run);
+    prev = d;
+  }
+  return best;
+}
+
+export function bestDay(map: Record<string, number>) {
+  const vals = Object.values(map);
+  return vals.length ? Math.max(...vals) : 0;
+}
+
+export function daysTracked(map: Record<string, number>) {
+  return Object.keys(map).filter((k) => map[k] > 0).length;
+}
+
+/** Average across days you actually logged, not calendar days. */
+export function dailyAverage(map: Record<string, number>) {
+  const days = daysTracked(map);
+  if (!days) return 0;
+  const total = Object.values(map).reduce((a, b) => a + b, 0);
+  return Math.round(total / days);
+}
+
+/** Share of tracked days that reached the goal, 0–100. */
+export function goalHitRate(map: Record<string, number>, goal: number) {
+  const days = Object.keys(map).filter((k) => map[k] > 0);
+  if (!days.length || goal <= 0) return 0;
+  const hit = days.filter((k) => map[k] >= goal).length;
+  return Math.round((hit / days.length) * 100);
+}
+
+const DAY_INITIALS = ["S", "M", "T", "W", "T", "F", "S"];
+
+export interface Bar {
+  key: string;
+  label: string;
+  value: number;
+  isNow: boolean;
+}
+
+/** Last 7 days, oldest first. */
+export function weekBars(map: Record<string, number>): Bar[] {
+  const out: Bar[] = [];
+  const now = todayKey();
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const k = todayKey(d);
+    out.push({ key: k, label: DAY_INITIALS[d.getDay()], value: map[k] ?? 0, isNow: k === now });
+  }
+  return out;
+}
+
+/** Last 6 weeks as totals, oldest first. */
+export function monthBars(map: Record<string, number>): Bar[] {
+  const out: Bar[] = [];
+  for (let w = 5; w >= 0; w--) {
+    let sum = 0;
+    const start = new Date();
+    start.setDate(start.getDate() - (w * 7 + 6));
+    for (let j = 0; j < 7; j++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + j);
+      sum += map[todayKey(d)] ?? 0;
+    }
+    out.push({ key: `w${w}`, label: w === 0 ? "now" : `-${w}w`, value: sum, isNow: w === 0 });
+  }
+  return out;
+}
+
 export function repsToday(h: HistoryEntry[]) {
   const k = todayKey();
   return h

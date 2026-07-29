@@ -149,14 +149,14 @@ export function PhotoProof({
           <div
             className="mb-4 flex items-start gap-3 rounded-2xl p-4"
             style={{
-              background: approved ? "rgba(198,255,90,0.12)" : "rgba(255,107,107,0.12)",
+              background: approved ? "var(--earn-soft)" : "rgba(255,107,107,0.12)",
             }}
           >
             <span
               className="grid h-7 w-7 shrink-0 place-items-center rounded-full"
               style={{
                 background: approved ? "var(--accent)" : "var(--danger)",
-                color: approved ? "#0a0b0f" : "#fff",
+                color: approved ? "#ffffff" : "#fff",
               }}
             >
               {approved ? <Check size={16} strokeWidth={3} /> : <X size={16} strokeWidth={3} />}
@@ -176,7 +176,7 @@ export function PhotoProof({
         {approved ? (
           <button
             onClick={onClose}
-            className="glow w-full rounded-2xl bg-[var(--accent)] py-4 text-lg font-bold text-black active:scale-[0.98]"
+            className="glow w-full rounded-2xl bg-[var(--accent)] py-4 text-lg font-bold text-white active:scale-[0.98]"
           >
             Nice — done
           </button>
@@ -184,7 +184,7 @@ export function PhotoProof({
           <button
             onClick={capture}
             disabled={!!error}
-            className="glow w-full rounded-2xl bg-[var(--accent)] py-4 text-lg font-bold text-black disabled:opacity-30 disabled:shadow-none active:scale-[0.98]"
+            className="glow w-full rounded-2xl bg-[var(--accent)] py-4 text-lg font-bold text-white disabled:opacity-30 disabled:shadow-none active:scale-[0.98]"
           >
             Take photo
           </button>
@@ -199,7 +199,7 @@ export function PhotoProof({
             <button
               onClick={submit}
               disabled={busy}
-              className="glow flex-1 rounded-2xl bg-[var(--accent)] py-4 text-base font-bold text-black disabled:opacity-40 active:scale-[0.98]"
+              className="glow flex-1 rounded-2xl bg-[var(--accent)] py-4 text-base font-bold text-white disabled:opacity-40 active:scale-[0.98]"
             >
               {busy ? "Checking…" : "Submit"}
             </button>

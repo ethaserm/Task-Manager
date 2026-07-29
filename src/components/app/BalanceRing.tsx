@@ -43,28 +43,16 @@ export function BalanceRing({
 
   return (
     <div className="card relative overflow-hidden px-6 py-7">
-      {/* accent bloom */}
-      <div
-        className="pointer-events-none absolute -top-24 left-1/2 h-56 w-56 -translate-x-1/2 rounded-full blur-3xl"
-        style={{ background: "rgba(198,255,90,0.18)" }}
-      />
-
       <div className="relative mx-auto grid h-56 w-56 place-items-center">
         <svg viewBox="0 0 240 240" className="absolute inset-0 h-full w-full -rotate-90">
-          <defs>
-            <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="var(--accent)" />
-              <stop offset="100%" stopColor="var(--violet)" />
-            </linearGradient>
-          </defs>
-          <circle cx="120" cy="120" r={R} fill="none" stroke="var(--surface-2)" strokeWidth="14" />
+          <circle cx="120" cy="120" r={R} fill="none" stroke="var(--surface-2)" strokeWidth="10" />
           <circle
             cx="120"
             cy="120"
             r={R}
             fill="none"
-            stroke="url(#ringGrad)"
-            strokeWidth="14"
+            stroke="var(--earn)"
+            strokeWidth="10"
             strokeLinecap="round"
             strokeDasharray={C}
             strokeDashoffset={C * (1 - pct)}
@@ -99,11 +87,11 @@ export function BalanceRing({
         <div
           className="rounded-full px-3 py-1.5 text-sm font-bold"
           style={{
-            background: pct >= 1 ? "var(--accent)" : "rgba(198,255,90,0.14)",
-            color: pct >= 1 ? "#0a0b0f" : "var(--accent)",
+            background: pct >= 1 ? "var(--earn)" : "var(--earn-soft)",
+            color: pct >= 1 ? "#ffffff" : "var(--earn)",
           }}
         >
-          {pct >= 1 ? "Goal hit 🎉" : `${Math.round(pct * 100)}%`}
+          {pct >= 1 ? "Goal hit" : `${Math.round(pct * 100)}%`}
         </div>
       </div>
     </div>

@@ -309,7 +309,8 @@ export function PushupSession({
         const goodForm = straight >= STRAIGHT_MIN;
         formOkRef.current = goodForm;
 
-        const accent = goodForm ? "rgba(198, 255, 90, 0.95)" : "rgba(255, 107, 107, 0.95)";
+        // Bright on camera regardless of the room; the calm palette is for UI, not video.
+        const accent = goodForm ? "rgba(110, 231, 160, 0.95)" : "rgba(255, 107, 107, 0.95)";
         ctx.lineWidth = Math.max(2, canvas.width / 300);
         ctx.lineCap = "round";
         ctx.strokeStyle = accent;
@@ -480,7 +481,7 @@ export function PushupSession({
             ))}
           </div>
 
-          <div className="glow mt-6 rounded-3xl bg-[var(--accent)] px-6 py-5 text-black">
+          <div className="glow mt-6 rounded-3xl bg-[var(--accent)] px-6 py-5 text-white">
             <div className="text-3xl font-bold">+{result.minutes} min</div>
             <div className="text-xs font-semibold uppercase tracking-widest opacity-70">banked</div>
           </div>
@@ -515,7 +516,7 @@ export function PushupSession({
           className="pointer-events-none absolute inset-0 transition-opacity duration-200"
           style={{
             opacity: flash ? 1 : 0,
-            boxShadow: "inset 0 0 120px 20px rgba(198,255,90,0.55)",
+            boxShadow: "inset 0 0 120px 20px rgba(255,255,255,0.45)",
           }}
         />
 
@@ -566,7 +567,7 @@ export function PushupSession({
           >
             {reps}
           </div>
-          <div className="mt-1 inline-block rounded-full bg-[var(--accent)] px-4 py-1 text-sm font-bold text-black">
+          <div className="mt-1 inline-block rounded-full bg-[var(--accent)] px-4 py-1 text-sm font-bold text-white">
             +{reps * MINUTES_PER_REP} min earned
           </div>
         </div>
@@ -607,7 +608,7 @@ export function PushupSession({
         {!running ? (
           <button
             onClick={begin}
-            className="glow w-full rounded-2xl bg-[var(--accent)] py-4 text-lg font-bold text-black active:scale-[0.98]"
+            className="glow w-full rounded-2xl bg-[var(--accent)] py-4 text-lg font-bold text-white active:scale-[0.98]"
           >
             Start session
           </button>

@@ -61,7 +61,7 @@ export function SpendSheet({
                 onClick={() => setAmount(m)}
                 className={`rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-30 ${
                   capped === m
-                    ? "bg-[var(--accent)] text-black"
+                    ? "bg-[var(--accent)] text-white"
                     : "bg-[var(--surface-2)] text-[var(--muted)]"
                 }`}
               >
@@ -73,7 +73,7 @@ export function SpendSheet({
               onClick={() => setAmount(balance)}
               className={`rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-30 ${
                 capped === balance && balance > 0
-                  ? "bg-[var(--accent)] text-black"
+                  ? "bg-[var(--accent)] text-white"
                   : "bg-[var(--surface-2)] text-[var(--muted)]"
               }`}
             >
@@ -89,7 +89,7 @@ export function SpendSheet({
               onSpend(capped);
               onClose();
             }}
-            className="glow w-full rounded-2xl bg-[var(--accent)] py-4 text-lg font-bold text-black disabled:opacity-30 disabled:shadow-none active:scale-[0.98]"
+            className="glow w-full rounded-2xl bg-[var(--accent)] py-4 text-lg font-bold text-white disabled:opacity-30 disabled:shadow-none active:scale-[0.98]"
           >
             Start {capped} min
           </button>

@@ -7,47 +7,48 @@
 @theme inline {
   --radius-sm: 10px;
   --radius-md: 14px;
-  --radius-lg: 20px;
-  --radius-xl: 28px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
   --color-background: var(--bg);
   --color-foreground: var(--text);
   --color-card: var(--surface);
   --color-card-foreground: var(--text);
   --color-popover: var(--surface);
   --color-popover-foreground: var(--text);
-  --color-primary: var(--accent);
-  --color-primary-foreground: #0a0b0f;
+  --color-primary: var(--text);
+  --color-primary-foreground: var(--surface);
   --color-secondary: var(--surface-2);
   --color-secondary-foreground: var(--text);
   --color-muted: var(--surface-2);
   --color-muted-foreground: var(--muted);
   --color-accent: var(--accent);
-  --color-accent-foreground: #0a0b0f;
+  --color-accent-foreground: var(--surface);
   --color-destructive: var(--danger);
   --color-destructive-foreground: #ffffff;
   --color-border: var(--line);
   --color-input: var(--line);
-  --color-ring: var(--accent);
+  --color-ring: var(--text);
   --font-display: "Outfit", sans-serif;
   --font-sans: "Inter", sans-serif;
   --font-mono: "Inter", sans-serif;
 }
 
 :root {
-  --radius: 20px;
+  --radius: 18px;
 
-  /* Deep dark base with a single high-energy accent */
-  --bg: #0a0b0f;
-  --surface: #14161d;
-  --surface-2: #1e212b;
-  --text: #f5f7fa;
-  --muted: #8b93a7;
-  --line: #262a36;
+  /* Calm: paper background, white cards, near-black ink */
+  --bg: #f4f4f2;
+  --surface: #ffffff;
+  --surface-2: #ebebe7;
+  --text: #16160f;
+  --muted: #6c6c68;
+  --line: #e3e3de;
 
-  --accent: #c6ff5a;
-  --accent-dim: #9fd93c;
-  --violet: #8b7cff;
-  --danger: #ff6b6b;
+  --accent: #16160f;
+  --earn: #2f6b4a;
+  --earn-soft: rgba(47, 107, 74, 0.1);
+  --violet: #4f4a7a;
+  --danger: #b3402f;
 }
 
 @layer base {
@@ -58,21 +59,14 @@
   html {
     -webkit-tap-highlight-color: transparent;
     background-color: var(--bg);
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   body {
     background-color: var(--bg);
     color: var(--text);
     font-family: var(--font-sans);
-    /* soft accent bloom behind the top of the page */
-    background-image: radial-gradient(
-      120% 60% at 50% -10%,
-      rgba(198, 255, 90, 0.13) 0%,
-      transparent 60%
-    );
-    background-repeat: no-repeat;
-    background-attachment: fixed;
+    font-feature-settings: "tnum" 1;
   }
 
   h1,
@@ -90,33 +84,27 @@
   }
 }
 
-/* Raised panel used for every card and sheet */
+/* Plain white panel — the only container in the app */
 @utility card {
   background-color: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 24px;
+  border-radius: 18px;
 }
 
-/* Accent halo for primary actions and the balance hero */
+/* Reserved for the one primary action on a screen */
 @utility glow {
-  box-shadow:
-    0 8px 30px -8px rgba(198, 255, 90, 0.45),
-    0 2px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 2px rgba(22, 22, 15, 0.08);
 }
 
 @utility eyebrow {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 500;
   color: var(--muted);
 }
 
-/* Bottom sheet surface */
 @utility sheet {
-  background-color: var(--surface);
-  border-top-left-radius: 28px;
-  border-top-right-radius: 28px;
+  background-color: var(--bg);
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
 }
 
 @utility safe-bottom {
