@@ -25,6 +25,7 @@ const VIS = 0.5; // landmark confidence floor
 const MIN_REP_MS = 400; // ignore jitter faster than a real rep
 const SMOOTH = 0.4; // EMA weight on the new frame
 const LOST_MS = 2000; // no body for this long = auto-pause
+const REST_MS = 20000; // this long without a rep counts as a rest between sets
 const STRAIGHT_MIN = 145; // hip angle below this is a sagging/piked back
 
 /** Interior angle at `b` in degrees. */
@@ -56,7 +57,7 @@ export function PushupSession({
   best?: number;
   /** Fired the instant a rep completes — credits MINUTES_PER_REP immediately. */
   onRep: (minutes: number) => void;
-  onFinish: (result: { reps: number; seconds: number; minutes: number }) => void;
+  onFinish: (result: { reps: number; seconds: number; minutes: number; sets: number }) => void;
   onCancel: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -86,9 +87,13 @@ export function PushupSession({
   const loRef = useRef(Infinity);
   const hiRef = useRef(-Infinity);
   const formOkRef = useRef(true);
+  // A rest of REST_MS or more starts a new set.
+  const setsRef = useRef(1);
+  const lastRestRef = useRef(0);
 
   const [facing, setFacing] = useState<"user" | "environment">("environment");
   const [reps, setReps] = useState(0);
+  const [sets, setSets] = useState(1);
   const [depth, setDepth] = useState(0); // 0 = locked out, 1 = bottom of the rep
   const [calibrated, setCalibrated] = useState(false);
   const [status, setStatus] = useState("Ready when you are");
@@ -98,9 +103,12 @@ export function PushupSession({
   const [paused, setPaused] = useState(false);
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
-  const [result, setResult] = useState<{ reps: number; seconds: number; minutes: number } | null>(
-    null,
-  );
+  const [result, setResult] = useState<{
+    reps: number;
+    seconds: number;
+    minutes: number;
+    sets: number;
+  } | null>(null);
 
   const beep = useCallback(() => {
     try {
@@ -137,6 +145,8 @@ export function PushupSession({
       reps: repsRef.current,
       seconds: Math.round(raw / 1000),
       minutes: repsRef.current * MINUTES_PER_REP,
+      // A set only counts once it has reps in it.
+      sets: repsRef.current > 0 ? setsRef.current : 0,
     });
   }, [stop]);
 
@@ -158,6 +168,9 @@ export function PushupSession({
     doneRef.current = false;
     pausedRef.current = false;
     repsRef.current = 0;
+    setsRef.current = 1;
+    lastRestRef.current = 0;
+    setSets(1);
     phaseRef.current = "up";
     valRef.current = null;
     loRef.current = Infinity;
@@ -373,6 +386,11 @@ export function PushupSession({
             setStatus("Rep skipped — back sagging");
             navigator.vibrate?.([25, 60, 25]);
           } else if (ts - lastRepRef.current > MIN_REP_MS) {
+            // A long gap since the last rep means they rested — new set.
+            if (repsRef.current > 0 && ts - lastRepRef.current > REST_MS) {
+              setsRef.current += 1;
+              setSets(setsRef.current);
+            }
             lastRepRef.current = ts;
             repsRef.current += 1;
             setReps(repsRef.current);
@@ -452,8 +470,8 @@ export function PushupSession({
           <div className="mt-6 grid grid-cols-3 gap-2">
             {[
               ["Time", fmtClock(result.seconds * 1000)],
+              ["Sets", String(result.sets)],
               ["Pace", `${pace}s`],
-              ["Best", String(Math.max(best, result.reps))],
             ].map(([label, value]) => (
               <div key={label} className="card px-2 py-3">
                 <div className="text-lg font-bold">{value}</div>
@@ -517,6 +535,7 @@ export function PushupSession({
           {running && (
             <div className="flex items-center gap-2 rounded-full bg-black/50 px-4 py-2 backdrop-blur">
               <span className="text-sm font-bold text-white">{fmtClock(elapsed)}</span>
+              <span className="text-xs font-medium text-white/60">set {sets}</span>
               {best > 0 && <span className="text-xs font-medium text-white/60">best {best}</span>}
             </div>
           )}

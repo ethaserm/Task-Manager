@@ -48,7 +48,8 @@ function Blocked() {
               name: pushTask?.name ?? "Pushup session",
               minutes: r.minutes,
               kind: "pushup",
-              summary: `${r.reps} reps · ${r.seconds}s`,
+              summary:
+                r.sets > 1 ? `${r.reps} reps · ${r.sets} sets` : `${r.reps} reps · ${r.seconds}s`,
             });
           }
           setSession(false);

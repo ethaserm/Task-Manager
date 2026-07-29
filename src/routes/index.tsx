@@ -83,6 +83,7 @@ function Ledger() {
 
   const earned = earnedToday(state.history);
   const streak = currentStreak(state.history);
+  const pushupTask = state.tasks.find((t) => t.kind === "pushup");
 
   const grouped = CATEGORY_ORDER.map((c) => ({
     category: c,
@@ -129,6 +130,34 @@ function Ledger() {
           </button>
         )}
       </div>
+
+      {/* Pushups are the task that actually gets used — one tap, no scrolling. */}
+      {pushupTask && !state.active && (
+        <div className="px-4 pb-6">
+          <button
+            onClick={() => setPushTask(pushupTask)}
+            className="card flex w-full items-center gap-4 p-4 text-left active:scale-[0.99]"
+            style={{ borderColor: "var(--violet)" }}
+          >
+            <span
+              className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl"
+              style={{ background: "rgba(139,124,255,0.16)", color: "var(--violet)" }}
+            >
+              <Dumbbell size={26} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-display text-lg font-bold">Start pushups</span>
+              <span className="block text-sm text-[var(--muted)]">
+                1 rep = 1 min
+                {state.pushupBest > 0 ? ` · best ${state.pushupBest}` : ""}
+              </span>
+            </span>
+            <span className="shrink-0 text-2xl" aria-hidden>
+              →
+            </span>
+          </button>
+        </div>
+      )}
 
       {ready && state.tasks.length === 0 && (
         <p className="px-6 py-8 text-center text-sm text-[var(--muted)]">
@@ -294,7 +323,8 @@ function Ledger() {
                 name: pushTask.name,
                 minutes: r.minutes,
                 kind: "pushup",
-                summary: `${r.reps} reps · ${r.seconds}s`,
+                summary:
+                  r.sets > 1 ? `${r.reps} reps · ${r.sets} sets` : `${r.reps} reps · ${r.seconds}s`,
               });
             }
             setPushTask(null);
