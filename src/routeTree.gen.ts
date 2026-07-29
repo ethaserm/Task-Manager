@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BlockedRouteImport } from './routes/blocked'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ApiVerifyTaskRouteImport } from './routes/api/verify-task'
@@ -17,6 +18,11 @@ import { Route as ApiVerifyTaskRouteImport } from './routes/api/verify-task'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlockedRoute = BlockedRouteImport.update({
+  id: '/blocked',
+  path: '/blocked',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HistoryRoute = HistoryRouteImport.update({
@@ -37,12 +43,14 @@ const ApiVerifyTaskRoute = ApiVerifyTaskRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/blocked': typeof BlockedRoute
   '/history': typeof HistoryRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/verify-task': typeof ApiVerifyTaskRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/blocked': typeof BlockedRoute
   '/history': typeof HistoryRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/verify-task': typeof ApiVerifyTaskRoute
@@ -50,20 +58,28 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/blocked': typeof BlockedRoute
   '/history': typeof HistoryRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/api/verify-task': typeof ApiVerifyTaskRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/history' | '/sitemap.xml' | '/api/verify-task'
+  fullPaths: '/' | '/blocked' | '/history' | '/sitemap.xml' | '/api/verify-task'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/history' | '/sitemap.xml' | '/api/verify-task'
-  id: '__root__' | '/' | '/history' | '/sitemap.xml' | '/api/verify-task'
+  to: '/' | '/blocked' | '/history' | '/sitemap.xml' | '/api/verify-task'
+  id:
+    | '__root__'
+    | '/'
+    | '/blocked'
+    | '/history'
+    | '/sitemap.xml'
+    | '/api/verify-task'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BlockedRoute: typeof BlockedRoute
   HistoryRoute: typeof HistoryRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiVerifyTaskRoute: typeof ApiVerifyTaskRoute
@@ -76,6 +92,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blocked': {
+      id: '/blocked'
+      path: '/blocked'
+      fullPath: '/blocked'
+      preLoaderRoute: typeof BlockedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/history': {
@@ -104,6 +127,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BlockedRoute: BlockedRoute,
   HistoryRoute: HistoryRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiVerifyTaskRoute: ApiVerifyTaskRoute,
