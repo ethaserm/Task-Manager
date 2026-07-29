@@ -31,9 +31,9 @@ export function ActiveSessionCard({
   useEffect(() => {
     if (!done || firedRef.current) return;
     firedRef.current = true;
-    // Safari may refuse a scheme navigation without a tap; the Lock button below
-    // is the guaranteed path, this just saves a tap when it does go through.
-    runShortcut(LOCK_SHORTCUT);
+    // No auto-run of the Lock shortcut here: Safari prompts "Open this page in
+    // Shortcuts?" on every load, which fires each time Guard bounces you back.
+    // The explicit Lock button below is one tap and never nags.
     navigator.vibrate?.([200, 100, 200, 100, 400]);
     try {
       const ctx = new AudioContext();
