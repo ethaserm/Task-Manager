@@ -26,6 +26,7 @@ const MIN_REP_MS = 400; // ignore jitter faster than a real rep
 const SMOOTH = 0.4; // EMA weight on the new frame
 const LOST_MS = 2000; // no body for this long = auto-pause
 const REST_MS = 20000; // this long without a rep counts as a rest between sets
+const MAX_REP_MS = 5000; // slower than this down-to-up is not a pushup
 const DOWN_ANGLE = 110; // elbow bent past this = bottom of the rep
 const UP_ANGLE = 150; // elbow straighter than this = locked out at the top
 const STRAIGHT_MIN = 145; // hip angle below this is a sagging/piked back
@@ -50,38 +51,6 @@ function angleAt(a: Landmark, b: Landmark, c: Landmark, ar: number) {
 }
 
 const seen = (l?: Landmark) => !!l && (l.visibility ?? 1) > VIS;
-
-/**
- * True when the torso is clearly vertical — standing, sitting, climbing off a
- * chair. Only that is blocked: requiring a *horizontal* torso fails whenever the
- * phone faces you head-on, because the torso barely spans any width on screen.
- */
-function isUpright(lm: Landmark[], ar: number) {
-  const sx: number[] = [];
-  const sy: number[] = [];
-  const hx: number[] = [];
-  const hy: number[] = [];
-  for (const i of [11, 12]) {
-    if (seen(lm[i])) {
-      sx.push(lm[i].x);
-      sy.push(lm[i].y);
-    }
-  }
-  for (const i of [23, 24]) {
-    if (seen(lm[i])) {
-      hx.push(lm[i].x);
-      hy.push(lm[i].y);
-    }
-  }
-  if (!sx.length || !hx.length) return false;
-  const avg = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length;
-  const dx = Math.abs(avg(sx) - avg(hx)) * ar;
-  const dy = Math.abs(avg(sy) - avg(hy));
-  // Standing puts a lot of frame height between shoulders and hips; lying down
-  // puts very little there, whatever angle the phone is at. A ratio test alone
-  // fails head-on, where both distances collapse toward zero.
-  return dy > 0.22 && dy > dx;
-}
 
 function fmtClock(ms: number) {
   const s = Math.max(0, Math.round(ms / 1000));
@@ -128,6 +97,7 @@ export function PushupSession({
   const formOkRef = useRef(true);
   const seenLoRef = useRef(Infinity);
   const seenHiRef = useRef(-Infinity);
+  const downAtRef = useRef(0);
   // A rest of REST_MS or more starts a new set.
   const setsRef = useRef(1);
   const lastRestRef = useRef(0);
@@ -412,13 +382,10 @@ export function PushupSession({
         seenLoRef.current = Math.min(seenLoRef.current, v);
         seenHiRef.current = Math.max(seenHiRef.current, v);
 
-        // --- position gate: standing or sitting never counts
-        if (isUpright(lm, ar)) {
-          phaseRef.current = "up";
-          setDepth(0);
-          setStatus("Get down into position");
-          return;
-        }
+        // No posture gate. Every version of it misjudged some camera angle and
+        // silently refused to count real reps, which is far worse than the
+        // occasional false one — a bad rep can be undone, a missed one is just
+        // demoralising. Speed is the discriminator instead, below.
 
         setHint(goodForm ? null : "Straighten your back");
         // 0 at lockout, 1 at the bottom of a rep.
@@ -426,11 +393,18 @@ export function PushupSession({
 
         if (phaseRef.current === "up" && v < DOWN_ANGLE) {
           phaseRef.current = "down";
+          downAtRef.current = ts;
           setPhase("down");
           setStatus("Now push up");
         } else if (phaseRef.current === "down" && v > UP_ANGLE) {
           setPhase("up");
           phaseRef.current = "up";
+          // Pulling off a jumper or climbing off a chair bends and straightens the
+          // arms too, but takes far longer than pushing back up does.
+          if (ts - downAtRef.current > MAX_REP_MS) {
+            setStatus("Too slow to count");
+            return;
+          }
           // Form is advice, not a gate: the hip angle is unreliable head-on, and a
           // rep that silently doesn't count is far worse than a missed warning.
           if (ts - lastRepRef.current > MIN_REP_MS) {
