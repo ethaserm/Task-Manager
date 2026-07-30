@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Lock, LockOpen, Square } from "lucide-react";
-import { fmtCountdown, minutesLeft, type ActiveSession } from "@/lib/app-state";
-import { isIOS, LOCK_SHORTCUT, runShortcut, UNLOCK_SHORTCUT } from "@/lib/shortcuts";
+import { Square } from "lucide-react";
+import { fmtCountdown, type ActiveSession } from "@/lib/app-state";
 
 /**
  * Live countdown for screen time being spent. Time is derived from `endsAt`, so
@@ -79,11 +78,7 @@ export function ActiveSessionCard({
         </div>
 
         <button
-          onClick={() => {
-            // Re-lock the phone's apps as soon as the session ends.
-            runShortcut(LOCK_SHORTCUT);
-            onEnd();
-          }}
+          onClick={onEnd}
           className="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold active:scale-95"
           style={
             done
@@ -95,25 +90,6 @@ export function ActiveSessionCard({
           {done ? "Done" : "Stop"}
         </button>
       </div>
-
-      {isIOS() &&
-        (done ? (
-          <button
-            onClick={() => runShortcut(LOCK_SHORTCUT)}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--danger)] py-3 text-sm font-bold text-white active:scale-[0.98]"
-          >
-            <Lock size={16} />
-            Lock my apps again
-          </button>
-        ) : (
-          <button
-            onClick={() => runShortcut(UNLOCK_SHORTCUT, minutesLeft(session))}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--surface-2)] py-3 text-sm font-bold text-[var(--accent)] active:scale-[0.98]"
-          >
-            <LockOpen size={16} />
-            Unlock my apps for {minutesLeft(session)} min
-          </button>
-        ))}
 
       {!done && (
         <p className="mt-3 text-xs text-[var(--muted)]">

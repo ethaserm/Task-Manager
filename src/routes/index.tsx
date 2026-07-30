@@ -28,7 +28,6 @@ import {
 import { SpendSheet } from "@/components/app/SpendSheet";
 import { ActiveSessionCard } from "@/components/app/ActiveSessionCard";
 import { QuickAdd } from "@/components/app/QuickAdd";
-import { runShortcut, UNLOCK_SHORTCUT } from "@/lib/shortcuts";
 import { useAppState } from "@/lib/use-app-state";
 
 export const Route = createFileRoute("/")({
@@ -321,12 +320,7 @@ function Ledger() {
         <SpendSheet
           balance={state.balance}
           onClose={() => setSpending(false)}
-          onSpend={(m) => {
-            startScreenTime(m);
-            // Spending minutes is the whole point of unlocking, so don't make it a
-            // second, separate tap — the Guard automation keeps bouncing until this runs.
-            runShortcut(UNLOCK_SHORTCUT, m);
-          }}
+          onSpend={startScreenTime}
         />
       )}
 
