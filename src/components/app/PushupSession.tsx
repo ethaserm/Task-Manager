@@ -26,7 +26,8 @@ const MIN_REP_MS = 400; // ignore jitter faster than a real rep
 const SMOOTH = 0.4; // EMA weight on the new frame
 const LOST_MS = 2000; // no body for this long = auto-pause
 const REST_MS = 20000; // this long without a rep counts as a rest between sets
-const DECAY = 0.0015; // how fast the calibrated range forgets old extremes
+const DOWN_ANGLE = 110; // elbow bent past this = bottom of the rep
+const UP_ANGLE = 150; // elbow straighter than this = locked out at the top
 const STRAIGHT_MIN = 145; // hip angle below this is a sagging/piked back
 
 /** Interior angle at `b` in degrees. */
@@ -115,8 +116,6 @@ export function PushupSession({
   // Rep state machine + running calibration of this person's real range of motion.
   const phaseRef = useRef<"up" | "down">("up");
   const valRef = useRef<number | null>(null);
-  const loRef = useRef(Infinity);
-  const hiRef = useRef(-Infinity);
   const formOkRef = useRef(true);
   // A rest of REST_MS or more starts a new set.
   const setsRef = useRef(1);
@@ -127,6 +126,7 @@ export function PushupSession({
   const [reps, setReps] = useState(0);
   const [sets, setSets] = useState(1);
   const [depth, setDepth] = useState(0); // 0 = locked out, 1 = bottom of the rep
+  const [angle, setAngle] = useState(0); // live elbow angle, shown for diagnosis
   const [calibrated, setCalibrated] = useState(false);
   const [status, setStatus] = useState("Ready when you are");
   const [hint, setHint] = useState<string | null>(null);
@@ -206,8 +206,6 @@ export function PushupSession({
     setSets(1);
     phaseRef.current = "up";
     valRef.current = null;
-    loRef.current = Infinity;
-    hiRef.current = -Infinity;
     pausedTotalRef.current = 0;
     setReps(0);
     setDepth(0);
@@ -370,72 +368,44 @@ export function PushupSession({
 
         if (pausedRef.current) return;
 
-        // --- position gate: nothing counts, and nothing calibrates, until they are down
+        // --- position gate: nothing counts until they are actually down in a plank
         if (!inPushupPosture(lm)) {
-          postureLostRef.current = postureLostRef.current || ts;
-          // Standing around long enough means the old range is stale — start over.
-          if (ts - postureLostRef.current > 3000) {
-            valRef.current = null;
-            loRef.current = Infinity;
-            hiRef.current = -Infinity;
-            phaseRef.current = "up";
-            setCalibrated(false);
-            setDepth(0);
-          }
+          // Half-finished reps don't survive leaving the position.
+          phaseRef.current = "up";
+          valRef.current = null;
+          setCalibrated(false);
+          setDepth(0);
           setStatus("Get down into position");
           return;
         }
-        postureLostRef.current = 0;
 
-        // --- signal: elbow angle, falling back to shoulder drop when wrists are hidden
+        // --- signal: elbow angle. Absolute thresholds, deliberately not learned —
+        // a learned range gets poisoned by any big non-pushup movement (standing
+        // up, pulling off a jumper), which both invents reps and kills counting.
         const arms: number[] = [];
         if (seen(lm[11]) && seen(lm[13]) && seen(lm[15]))
           arms.push(angleAt(lm[11], lm[13], lm[15]));
         if (seen(lm[12]) && seen(lm[14]) && seen(lm[16]))
           arms.push(angleAt(lm[12], lm[14], lm[16]));
 
-        let raw: number | null = null;
-        if (arms.length) {
-          raw = arms.reduce((a, b) => a + b, 0) / arms.length;
-        } else if (seen(lm[11]) && seen(lm[13]) && seen(lm[23])) {
-          // torso length normalises for how far away the phone is
-          const torso = Math.abs(lm[23].y - lm[11].y) || 0.001;
-          raw = ((lm[13].y - lm[11].y) / torso) * 180;
-        }
-        if (raw === null) {
+        if (!arms.length) {
           setStatus("Can't see your arms");
           return;
         }
-
+        const raw = arms.reduce((a, b) => a + b, 0) / arms.length;
         const v = valRef.current === null ? raw : valRef.current * (1 - SMOOTH) + raw * SMOOTH;
         valRef.current = v;
-        loRef.current = Math.min(loRef.current, v);
-        hiRef.current = Math.max(hiRef.current, v);
-        // Let both ends creep back toward the current value so one freak reading
-        // (a stumble, a stretch) doesn't define the range for the whole session.
-        if (Number.isFinite(loRef.current)) loRef.current += (v - loRef.current) * DECAY;
-        if (Number.isFinite(hiRef.current)) hiRef.current += (v - hiRef.current) * DECAY;
-        const range = hiRef.current - loRef.current;
+        setAngle(Math.round(v));
 
         setHint(goodForm ? null : "Straighten your back");
-
-        // Thresholds ride on the range this person actually moves through, so the
-        // counter adapts to any camera angle, distance or body size.
-        if (range < 25) {
-          setDepth(0);
-          setCalibrated(false);
-          setStatus(phaseRef.current === "up" ? "Do one rep to calibrate" : "Keep going…");
-          return;
-        }
         setCalibrated(true);
-        const down = loRef.current + range * 0.35;
-        const up = loRef.current + range * 0.65;
-        setDepth(Math.max(0, Math.min(1, (hiRef.current - v) / range)));
+        // 0 at lockout, 1 at the bottom of a rep.
+        setDepth(Math.max(0, Math.min(1, (UP_ANGLE - v) / (UP_ANGLE - DOWN_ANGLE))));
 
-        if (phaseRef.current === "up" && v < down) {
+        if (phaseRef.current === "up" && v < DOWN_ANGLE) {
           phaseRef.current = "down";
           setStatus(goodForm ? "Now push up" : "Fix your form");
-        } else if (phaseRef.current === "down" && v > up) {
+        } else if (phaseRef.current === "down" && v > UP_ANGLE) {
           phaseRef.current = "up";
           if (!formOkRef.current) {
             setStatus("Rep skipped — back sagging");
@@ -648,7 +618,7 @@ export function PushupSession({
               />
             </div>
             <div className="mt-2 text-center text-xs font-medium text-white/70">
-              {calibrated ? "depth" : "calibrating…"}
+              {calibrated ? `arms ${angle}°` : "waiting for position"}
             </div>
           </div>
         )}
