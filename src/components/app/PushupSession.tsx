@@ -26,6 +26,7 @@ const MIN_REP_MS = 400; // ignore jitter faster than a real rep
 const SMOOTH = 0.4; // EMA weight on the new frame
 const LOST_MS = 2000; // no body for this long = auto-pause
 const REST_MS = 20000; // this long without a rep counts as a rest between sets
+const DECAY = 0.0015; // how fast the calibrated range forgets old extremes
 const STRAIGHT_MIN = 145; // hip angle below this is a sagging/piked back
 
 /** Interior angle at `b` in degrees. */
@@ -41,6 +42,36 @@ function angleAt(a: Landmark, b: Landmark, c: Landmark) {
 }
 
 const seen = (l?: Landmark) => !!l && (l.visibility ?? 1) > VIS;
+
+/**
+ * True when the torso lies closer to horizontal than vertical — i.e. they are
+ * actually down in a plank, not standing or climbing off a chair. Without this
+ * gate, getting into position swings the signal wildly, which both counts
+ * phantom reps and poisons the calibrated range.
+ */
+function inPushupPosture(lm: Landmark[]) {
+  const sx: number[] = [];
+  const sy: number[] = [];
+  const hx: number[] = [];
+  const hy: number[] = [];
+  for (const i of [11, 12]) {
+    if (seen(lm[i])) {
+      sx.push(lm[i].x);
+      sy.push(lm[i].y);
+    }
+  }
+  for (const i of [23, 24]) {
+    if (seen(lm[i])) {
+      hx.push(lm[i].x);
+      hy.push(lm[i].y);
+    }
+  }
+  if (!sx.length || !hx.length) return false;
+  const avg = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length;
+  const dx = Math.abs(avg(sx) - avg(hx));
+  const dy = Math.abs(avg(sy) - avg(hy));
+  return dx > dy;
+}
 
 function fmtClock(ms: number) {
   const s = Math.max(0, Math.round(ms / 1000));
@@ -90,6 +121,7 @@ export function PushupSession({
   // A rest of REST_MS or more starts a new set.
   const setsRef = useRef(1);
   const lastRestRef = useRef(0);
+  const postureLostRef = useRef(0);
 
   const [facing, setFacing] = useState<"user" | "environment">("environment");
   const [reps, setReps] = useState(0);
@@ -170,6 +202,7 @@ export function PushupSession({
     repsRef.current = 0;
     setsRef.current = 1;
     lastRestRef.current = 0;
+    postureLostRef.current = 0;
     setSets(1);
     phaseRef.current = "up";
     valRef.current = null;
@@ -337,6 +370,23 @@ export function PushupSession({
 
         if (pausedRef.current) return;
 
+        // --- position gate: nothing counts, and nothing calibrates, until they are down
+        if (!inPushupPosture(lm)) {
+          postureLostRef.current = postureLostRef.current || ts;
+          // Standing around long enough means the old range is stale — start over.
+          if (ts - postureLostRef.current > 3000) {
+            valRef.current = null;
+            loRef.current = Infinity;
+            hiRef.current = -Infinity;
+            phaseRef.current = "up";
+            setCalibrated(false);
+            setDepth(0);
+          }
+          setStatus("Get down into position");
+          return;
+        }
+        postureLostRef.current = 0;
+
         // --- signal: elbow angle, falling back to shoulder drop when wrists are hidden
         const arms: number[] = [];
         if (seen(lm[11]) && seen(lm[13]) && seen(lm[15]))
@@ -361,6 +411,10 @@ export function PushupSession({
         valRef.current = v;
         loRef.current = Math.min(loRef.current, v);
         hiRef.current = Math.max(hiRef.current, v);
+        // Let both ends creep back toward the current value so one freak reading
+        // (a stumble, a stretch) doesn't define the range for the whole session.
+        if (Number.isFinite(loRef.current)) loRef.current += (v - loRef.current) * DECAY;
+        if (Number.isFinite(hiRef.current)) hiRef.current += (v - hiRef.current) * DECAY;
         const range = hiRef.current - loRef.current;
 
         setHint(goodForm ? null : "Straighten your back");
