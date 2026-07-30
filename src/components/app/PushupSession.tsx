@@ -30,11 +30,18 @@ const DOWN_ANGLE = 110; // elbow bent past this = bottom of the rep
 const UP_ANGLE = 150; // elbow straighter than this = locked out at the top
 const STRAIGHT_MIN = 145; // hip angle below this is a sagging/piked back
 
-/** Interior angle at `b` in degrees. */
-function angleAt(a: Landmark, b: Landmark, c: Landmark) {
-  const abx = a.x - b.x;
+/**
+ * Interior angle at `b` in degrees.
+ *
+ * Landmarks are normalised to width and height independently, so on a portrait
+ * frame one unit of x is nowhere near one unit of y. Angles computed straight
+ * from those numbers are badly skewed — a locked-out arm can read 130 degrees.
+ * `ar` (width / height) restores the real proportions.
+ */
+function angleAt(a: Landmark, b: Landmark, c: Landmark, ar: number) {
+  const abx = (a.x - b.x) * ar;
   const aby = a.y - b.y;
-  const cbx = c.x - b.x;
+  const cbx = (c.x - b.x) * ar;
   const cby = c.y - b.y;
   const dot = abx * cbx + aby * cby;
   const mag = Math.hypot(abx, aby) * Math.hypot(cbx, cby);
@@ -49,7 +56,7 @@ const seen = (l?: Landmark) => !!l && (l.visibility ?? 1) > VIS;
  * chair. Only that is blocked: requiring a *horizontal* torso fails whenever the
  * phone faces you head-on, because the torso barely spans any width on screen.
  */
-function isUpright(lm: Landmark[]) {
+function isUpright(lm: Landmark[], ar: number) {
   const sx: number[] = [];
   const sy: number[] = [];
   const hx: number[] = [];
@@ -68,7 +75,7 @@ function isUpright(lm: Landmark[]) {
   }
   if (!sx.length || !hx.length) return false;
   const avg = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length;
-  const dx = Math.abs(avg(sx) - avg(hx));
+  const dx = Math.abs(avg(sx) - avg(hx)) * ar;
   const dy = Math.abs(avg(sy) - avg(hy));
   // Standing puts a lot of frame height between shoulders and hips; lying down
   // puts very little there, whatever angle the phone is at. A ratio test alone
@@ -119,6 +126,8 @@ export function PushupSession({
   const phaseRef = useRef<"up" | "down">("up");
   const valRef = useRef<number | null>(null);
   const formOkRef = useRef(true);
+  const seenLoRef = useRef(Infinity);
+  const seenHiRef = useRef(-Infinity);
   // A rest of REST_MS or more starts a new set.
   const setsRef = useRef(1);
   const lastRestRef = useRef(0);
@@ -213,6 +222,8 @@ export function PushupSession({
     setSets(1);
     phaseRef.current = "up";
     valRef.current = null;
+    seenLoRef.current = Infinity;
+    seenHiRef.current = -Infinity;
     pausedTotalRef.current = 0;
     setReps(0);
     setDepth(0);
@@ -335,12 +346,14 @@ export function PushupSession({
           setStatus("Back at it");
         }
 
+        const ar = canvas.width / canvas.height;
+
         // --- form: hips should stay in line with shoulders and knees
         const hipAngles: number[] = [];
         if (seen(lm[11]) && seen(lm[23]) && seen(lm[25]))
-          hipAngles.push(angleAt(lm[11], lm[23], lm[25]));
+          hipAngles.push(angleAt(lm[11], lm[23], lm[25], ar));
         if (seen(lm[12]) && seen(lm[24]) && seen(lm[26]))
-          hipAngles.push(angleAt(lm[12], lm[24], lm[26]));
+          hipAngles.push(angleAt(lm[12], lm[24], lm[26], ar));
         const straight = hipAngles.length
           ? hipAngles.reduce((a, b) => a + b, 0) / hipAngles.length
           : 180;
@@ -380,9 +393,9 @@ export function PushupSession({
         // up, pulling off a jumper), which both invents reps and kills counting.
         const arms: number[] = [];
         if (seen(lm[11]) && seen(lm[13]) && seen(lm[15]))
-          arms.push(angleAt(lm[11], lm[13], lm[15]));
+          arms.push(angleAt(lm[11], lm[13], lm[15], ar));
         if (seen(lm[12]) && seen(lm[14]) && seen(lm[16]))
-          arms.push(angleAt(lm[12], lm[14], lm[16]));
+          arms.push(angleAt(lm[12], lm[14], lm[16], ar));
 
         if (!arms.length) {
           setStatus("Can't see your arms");
@@ -395,9 +408,12 @@ export function PushupSession({
         // why a rep did or didn't register.
         setAngle(Math.round(v));
         setCalibrated(true);
+        // Kept purely so a session that counts nothing can still say why.
+        seenLoRef.current = Math.min(seenLoRef.current, v);
+        seenHiRef.current = Math.max(seenHiRef.current, v);
 
         // --- position gate: standing or sitting never counts
-        if (isUpright(lm)) {
+        if (isUpright(lm, ar)) {
           phaseRef.current = "up";
           setDepth(0);
           setStatus("Get down into position");
@@ -488,6 +504,17 @@ export function PushupSession({
     return (
       <div className="fixed inset-0 z-50 flex flex-col justify-center bg-[var(--bg)] px-6">
         <div className="mx-auto w-full max-w-sm text-center">
+          {result.reps === 0 && Number.isFinite(seenLoRef.current) && (
+            <div className="card mb-4 px-4 py-3 text-left">
+              <div className="text-sm font-semibold">Nothing counted</div>
+              <p className="mt-1 text-xs text-[var(--muted)]">
+                Your arms went from {Math.round(seenHiRef.current)}° down to{" "}
+                {Math.round(seenLoRef.current)}°. A rep needs below {DOWN_ANGLE}° then back above{" "}
+                {UP_ANGLE}°. Send me those two numbers if they look wrong.
+              </p>
+            </div>
+          )}
+
           {isBest && (
             <div className="mb-3 inline-block rounded-full bg-[var(--violet)] px-4 py-1.5 text-sm font-bold text-white">
               🔥 New personal best
