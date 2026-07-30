@@ -70,7 +70,10 @@ function isUpright(lm: Landmark[]) {
   const avg = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length;
   const dx = Math.abs(avg(sx) - avg(hx));
   const dy = Math.abs(avg(sy) - avg(hy));
-  return dy > dx * 1.6;
+  // Standing puts a lot of frame height between shoulders and hips; lying down
+  // puts very little there, whatever angle the phone is at. A ratio test alone
+  // fails head-on, where both distances collapse toward zero.
+  return dy > 0.22 && dy > dx;
 }
 
 function fmtClock(ms: number) {
@@ -130,6 +133,7 @@ export function PushupSession({
   const [sets, setSets] = useState(1);
   const [depth, setDepth] = useState(0); // 0 = locked out, 1 = bottom of the rep
   const [angle, setAngle] = useState(0); // live elbow angle, shown for diagnosis
+  const [phase, setPhase] = useState<"up" | "down">("up");
   const [calibrated, setCalibrated] = useState(false);
   const [status, setStatus] = useState("Ready when you are");
   const [hint, setHint] = useState<string | null>(null);
@@ -406,13 +410,14 @@ export function PushupSession({
 
         if (phaseRef.current === "up" && v < DOWN_ANGLE) {
           phaseRef.current = "down";
-          setStatus(goodForm ? "Now push up" : "Fix your form");
+          setPhase("down");
+          setStatus("Now push up");
         } else if (phaseRef.current === "down" && v > UP_ANGLE) {
+          setPhase("up");
           phaseRef.current = "up";
-          if (!formOkRef.current) {
-            setStatus("Rep skipped — back sagging");
-            navigator.vibrate?.([25, 60, 25]);
-          } else if (ts - lastRepRef.current > MIN_REP_MS) {
+          // Form is advice, not a gate: the hip angle is unreliable head-on, and a
+          // rep that silently doesn't count is far worse than a missed warning.
+          if (ts - lastRepRef.current > MIN_REP_MS) {
             // A long gap since the last rep means they rested — new set.
             if (repsRef.current > 0 && ts - lastRepRef.current > REST_MS) {
               setsRef.current += 1;
@@ -620,7 +625,9 @@ export function PushupSession({
               />
             </div>
             <div className="mt-2 text-center text-xs font-medium text-white/70">
-              {calibrated ? `arms ${angle}°` : "waiting for position"}
+              {calibrated
+                ? `arms ${angle}° · ${phase} · need <${DOWN_ANGLE} then >${UP_ANGLE}`
+                : "no arms in view"}
             </div>
           </div>
         )}
