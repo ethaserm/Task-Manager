@@ -45,12 +45,11 @@ function angleAt(a: Landmark, b: Landmark, c: Landmark) {
 const seen = (l?: Landmark) => !!l && (l.visibility ?? 1) > VIS;
 
 /**
- * True when the torso lies closer to horizontal than vertical — i.e. they are
- * actually down in a plank, not standing or climbing off a chair. Without this
- * gate, getting into position swings the signal wildly, which both counts
- * phantom reps and poisons the calibrated range.
+ * True when the torso is clearly vertical — standing, sitting, climbing off a
+ * chair. Only that is blocked: requiring a *horizontal* torso fails whenever the
+ * phone faces you head-on, because the torso barely spans any width on screen.
  */
-function inPushupPosture(lm: Landmark[]) {
+function isUpright(lm: Landmark[]) {
   const sx: number[] = [];
   const sy: number[] = [];
   const hx: number[] = [];
@@ -71,7 +70,7 @@ function inPushupPosture(lm: Landmark[]) {
   const avg = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length;
   const dx = Math.abs(avg(sx) - avg(hx));
   const dy = Math.abs(avg(sy) - avg(hy));
-  return dx > dy;
+  return dy > dx * 1.6;
 }
 
 function fmtClock(ms: number) {
@@ -123,6 +122,10 @@ export function PushupSession({
   const postureLostRef = useRef(0);
 
   const [facing, setFacing] = useState<"user" | "environment">("environment");
+  // The frame loop closes over `facing` at start, so flipping mid-session left the
+  // overlay unmirrored against a mirrored preview. Read it live instead.
+  const facingRef = useRef(facing);
+  facingRef.current = facing;
   const [reps, setReps] = useState(0);
   const [sets, setSets] = useState(1);
   const [depth, setDepth] = useState(0); // 0 = locked out, 1 = bottom of the rep
@@ -303,7 +306,7 @@ export function PushupSession({
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         // Mirror the overlay to match the mirrored selfie preview.
-        if (facing === "user") ctx.setTransform(-1, 0, 0, 1, canvas.width, 0);
+        if (facingRef.current === "user") ctx.setTransform(-1, 0, 0, 1, canvas.width, 0);
 
         const lm = res.landmarks?.[0] as Landmark[] | undefined;
 
@@ -368,17 +371,6 @@ export function PushupSession({
 
         if (pausedRef.current) return;
 
-        // --- position gate: nothing counts until they are actually down in a plank
-        if (!inPushupPosture(lm)) {
-          // Half-finished reps don't survive leaving the position.
-          phaseRef.current = "up";
-          valRef.current = null;
-          setCalibrated(false);
-          setDepth(0);
-          setStatus("Get down into position");
-          return;
-        }
-
         // --- signal: elbow angle. Absolute thresholds, deliberately not learned —
         // a learned range gets poisoned by any big non-pushup movement (standing
         // up, pulling off a jumper), which both invents reps and kills counting.
@@ -395,10 +387,20 @@ export function PushupSession({
         const raw = arms.reduce((a, b) => a + b, 0) / arms.length;
         const v = valRef.current === null ? raw : valRef.current * (1 - SMOOTH) + raw * SMOOTH;
         valRef.current = v;
+        // Always on screen, counting or not — it's the one number that explains
+        // why a rep did or didn't register.
         setAngle(Math.round(v));
+        setCalibrated(true);
+
+        // --- position gate: standing or sitting never counts
+        if (isUpright(lm)) {
+          phaseRef.current = "up";
+          setDepth(0);
+          setStatus("Get down into position");
+          return;
+        }
 
         setHint(goodForm ? null : "Straighten your back");
-        setCalibrated(true);
         // 0 at lockout, 1 at the bottom of a rep.
         setDepth(Math.max(0, Math.min(1, (UP_ANGLE - v) / (UP_ANGLE - DOWN_ANGLE))));
 
